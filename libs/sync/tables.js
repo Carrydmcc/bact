@@ -106,6 +106,8 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
     return Promise.resolve()
 }
 
+const byVirtualColumnsComingLast = (columnsMap, schemaPath) => columnName => columnsMap[columnName][schemaPath].expression ? 1 : -1
+
 const syncColumns = (api, apps, opts) => {
     const appTablesMap = buildAppTablesMap(apps)
     const [sourceApp, ...targetApps] = apps
@@ -115,6 +117,7 @@ const syncColumns = (api, apps, opts) => {
         .reduce((promise, tableName) => {
             const columnsMap = appTablesMap[tableName]
             let columnNamesList = Object.keys(columnsMap)
+              .sort(byVirtualColumnsComingLast(columnsMap, sourceApp.name))
 
             if(tableName === 'Users') {
                 const identityColumn = columnNamesList.find(el => columnsMap[el][sourceApp.name].identity)
