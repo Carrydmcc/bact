@@ -347,6 +347,20 @@ class Backendless {
         return [controlApp, ...appsToCheck]
     }
 
+    getAppSettings(appId) {
+        return this.instance.get(`/${appId}/console/appsettings`)
+          .then(res => res.data)
+    }
+
+    async getAppCustomApiKeys(app) {
+        const appSettings = await this.getAppSettings(app.id)
+
+        app.apiKeys = appSettings.apiKeys
+          .filter(key => key.deviceType === 'CUSTOM')
+          .map(key => key.name)
+          .sort()
+    }
+
     addTable(appId, name) {
         return this.instance.post(`${appId}/console/data/tables`, {name})
     }
@@ -435,25 +449,36 @@ class Backendless {
 
         const cleanColumn = column => {
             delete column.columnId
-            delete column.dataSize
+            delete column.metaInfo
+
+            //we have to preserve the dataSize for the columns
+            if (column.dataSize && ['INT', 'TEXT'].includes(column.dataType)) {
+                delete column.dataSize
+            }
         }
 
         const cleanRelation = relation => {
             delete relation.columnId
             delete relation.fromTableId
             delete relation.toTableId
+
+            //TODO: should be removed once Backendless team implement named columns identifiers
+            relation.metaInfo && delete relation.metaInfo.relationIdentificationColumnId
         }
 
         const cleanTable = table => {
             delete table.tableId;
             delete table.parentRelations;
+            delete table.geoRelations;
 
             (table.columns || []).forEach(cleanColumn);
             (table.relations || []).forEach(cleanRelation);
-            (table.geoRelations || []).forEach(cleanRelation);
         }
 
-        app.tables.forEach(cleanTable)
+        app.tables = app.tables
+          .filter(table => !['orders_dump', 'tmp'].find(prefix => table.name.startsWith(prefix)))
+          .map(cleanTable)
+
         app.roles.forEach(removeRoleId)
 
         app.services.forEach(service => {
@@ -470,7 +495,7 @@ class Backendless {
         delete app.secretKey
         delete app.name
 
-        return saveDataToFile(sort(app), path, verbose)
+        return saveDataToFile(sort(_.pick(app, ['tables', 'roles', 'services', 'apiKeys'])), path, verbose)
     }
 
     static sort(app) {
