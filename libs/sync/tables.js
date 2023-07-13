@@ -106,7 +106,18 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
     return Promise.resolve()
 }
 
-const byVirtualColumnsComingLast = (columnsMap, schemaPath) => columnName => columnsMap[columnName][schemaPath].expression ? 1 : -1
+const byVirtualColumnsComingLast = (columnsMap, schemaPath) => (columnNameA, columnNameB) => {
+    const columnA = columnsMap[columnNameA][schemaPath]
+    const columnB = columnsMap[columnNameB][schemaPath]
+
+    if (columnA.expression && !columnB.expression) {
+        return 1
+    } else if (!columnA.expression && columnB.expression) {
+        return -1
+    } else {
+        return 0
+    }
+}
 
 const syncColumns = (api, apps, opts) => {
     const appTablesMap = buildAppTablesMap(apps)
