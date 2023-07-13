@@ -475,10 +475,9 @@ class Backendless {
             (table.relations || []).forEach(cleanRelation);
         }
 
-        app.tables = app.tables
-          .filter(table => !['orders_dump', 'tmp'].find(prefix => table.name.startsWith(prefix)))
-          .map(cleanTable)
+        app.tables = app.tables.filter(table => !['orders_dump', 'tmp'].find(prefix => table.name.startsWith(prefix)))
 
+        app.tables.forEach(cleanTable)
         app.roles.forEach(removeRoleId)
 
         app.services.forEach(service => {
