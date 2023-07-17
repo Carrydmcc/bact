@@ -353,12 +353,14 @@ class Backendless {
     }
 
     async getAppCustomApiKeys(app) {
-        const appSettings = await this.getAppSettings(app.id)
+        if (app.id) {
+            const appSettings = await this.getAppSettings(app.id)
 
-        app.apiKeys = appSettings.apiKeys
-          .filter(key => key.deviceType === 'CUSTOM')
-          .map(key => key.name)
-          .sort()
+            app.apiKeys = appSettings.apiKeys
+              .filter(key => key.deviceType === 'CUSTOM')
+              .map(key => key.name)
+              .sort()
+        }
     }
 
     addTable(appId, name) {
@@ -381,14 +383,13 @@ class Backendless {
 
     updateColumn(appId, table, column) {
         const columnName = column.name || column.columnName
-        let path = tableColumnsUrl(appId, table)
+        let path = `${tableColumnsUrl(appId, table)}/${columnName}`
 
         if (isRelation(column)) {
-            path += '/relation'
+            path = path.replace(columnName, 'relation')
         }
 
-        return this.instance.put(`${path}/${columnName}`, column)
-
+        return this.instance.put(path, column)
     }
 
     removeColumn(appId, table, column) {
@@ -451,10 +452,28 @@ class Backendless {
             delete column.columnId
             delete column.metaInfo
 
-            //we have to preserve the dataSize for the columns
+            //we have to preserve dataSize for the columns, so we delete it only for INT and TEXT as it's not needed
             if (column.dataSize && ['INT', 'TEXT'].includes(column.dataType)) {
                 delete column.dataSize
             }
+        }
+
+        const resolveRelationIdentificationColumns = tables => {
+            const columnsById = _.keyBy(_.flatMap(tables, 'columns'), 'columnId')
+
+            tables.forEach(table => {
+                const relations = table.relations || []
+
+                if (relations.length) {
+                    relations.forEach(relation => {
+                        const { relationIdentificationColumnId } = relation.metaInfo || {}
+
+                        if (relationIdentificationColumnId) {
+                            relation.metaInfo.relationIdentificationColumnName = columnsById[relationIdentificationColumnId].name
+                        }
+                    })
+                }
+            })
         }
 
         const cleanRelation = relation => {
@@ -462,7 +481,6 @@ class Backendless {
             delete relation.fromTableId
             delete relation.toTableId
 
-            //TODO: should be removed once Backendless team implement named columns identifiers
             relation.metaInfo && delete relation.metaInfo.relationIdentificationColumnId
         }
 
@@ -476,6 +494,8 @@ class Backendless {
         }
 
         app.tables = app.tables.filter(table => !['orders_dump', 'tmp'].find(prefix => table.name.startsWith(prefix)))
+
+        resolveRelationIdentificationColumns(app.tables)
 
         app.tables.forEach(cleanTable)
         app.roles.forEach(removeRoleId)

@@ -39,6 +39,13 @@ const buildColumnsMap = table => {
                 column.unique && (options.push('UQ'))
                 column.required && (options.push('NN'))
 
+                if (relation.metaInfo?.relationIdentificationColumnId) {
+                    column.metaInfo || (column.metaInfo = {})
+                    column.metaInfo.relationIdentificationColumnId = relation.metaInfo.relationIdentificationColumnId
+
+                    options.push('relationIdentificationColumnId')
+                }
+
                 column.options = options
                 column.optionsString = options.join(', ')
 
@@ -106,6 +113,32 @@ const printDifferences = (apps, appTablesMap) => {
     return result;
 }
 
+const enrichColumnsWithRelationIdentificationData = (sourceApp, targetApp) => {
+  const targetAppColumnsByIdByTable = _.mapValues(
+    _.keyBy(targetApp.tables, 'name'), table => _.keyBy(table.columns, 'name')
+  )
+
+  sourceApp.tables.forEach(table => {
+    const relations = table.relations || []
+
+    if (relations.length) {
+      relations.forEach(relation => {
+        const { relationIdentificationColumnName } = relation.metaInfo || {}
+
+        if (relationIdentificationColumnName) {
+          const columnId = targetAppColumnsByIdByTable[relation.toTableName]?.[relationIdentificationColumnName]?.columnId
+
+          if (columnId) {
+            relation.metaInfo.relationIdentificationColumnId = columnId
+
+            delete relation.metaInfo.relationIdentificationColumnName
+          }
+        }
+      })
+    }
+  })
+}
+
 const buildAppTablesMap = apps => {
 
     return apps.reduce((appTablesMap, app) => {
@@ -127,6 +160,8 @@ const buildAppTablesMap = apps => {
 }
 
 module.exports = apps => {
+    enrichColumnsWithRelationIdentificationData(...apps)
+
     const appTablesMap = buildAppTablesMap(apps)
 
     return printDifferences(apps, appTablesMap);
