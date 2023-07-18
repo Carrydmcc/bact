@@ -452,8 +452,8 @@ class Backendless {
             delete column.columnId
             delete column.metaInfo
 
-            //we have to preserve dataSize for the columns, so we delete it only for INT and TEXT as it's not needed
-            if (column.dataSize && ['INT', 'TEXT'].includes(column.dataType)) {
+            //we preserve dataSize for STRING and BOOLEAN only
+            if (column.dataSize && ['DATETIME', 'INT','TEXT', 'DATA_REF', 'JSON',' POINT', 'DOUBLE',].includes(column.dataType)) {
                 delete column.dataSize
             }
         }
