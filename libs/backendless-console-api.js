@@ -353,14 +353,12 @@ class Backendless {
     }
 
     async getAppCustomApiKeys(app) {
-        if (app.id) {
-            const appSettings = await this.getAppSettings(app.id)
+        const appSettings = await this.getAppSettings(app.id)
 
-            app.apiKeys = appSettings.apiKeys
-              .filter(key => key.deviceType === 'CUSTOM')
-              .map(key => key.name)
-              .sort()
-        }
+        app.apiKeys = appSettings.apiKeys
+          .filter(key => key.deviceType === 'CUSTOM')
+          .map(key => key.name)
+          .sort()
     }
 
     addTable(appId, name) {
@@ -452,8 +450,7 @@ class Backendless {
             delete column.columnId
             delete column.metaInfo
 
-            //we preserve dataSize for STRING and BOOLEAN only
-            if (column.dataSize && ['DATETIME', 'INT','TEXT', 'DATA_REF', 'JSON',' POINT', 'DOUBLE',].includes(column.dataType)) {
+            if (column.dataSize && !['STRING', 'FILE_REF'].includes(column.dataType)) {
                 delete column.dataSize
             }
         }
