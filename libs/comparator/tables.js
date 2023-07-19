@@ -133,44 +133,59 @@ const getTargetRelationByIdAndTable = (relationsByIdByTable, tableName, relation
     return relationsByIdByTable[tableName]?.[relationName] || {};
 };
 
+const enrichTargetAppColumnsWithRelationIdentificationNames = (table, targetAppRelationsByIdByTable, targetAppColumnsById) => {
+    const relations = table.relations || [];
+
+    if (relations.length) {
+        relations.forEach(relation => {
+            const { relationIdentificationColumnId } = relation.metaInfo || {};
+
+            if (relationIdentificationColumnId) {
+                const targetRelation = getTargetRelationByIdAndTable(
+                  targetAppRelationsByIdByTable,
+                  relation.fromTableName,
+                  relation.name
+                );
+
+                if (targetRelation?.metaInfo?.relationIdentificationColumnId) {
+                    const relatedColumn = targetAppColumnsById[targetRelation.metaInfo.relationIdentificationColumnId];
+
+                    targetRelation.metaInfo.relationIdentificationColumnName = relatedColumn.name;
+                }
+            }
+        });
+    }
+}
+
+const enrichSchemaColumnsWithRelationIdentificationIds = (table, targetAppColumnsByNameByTable) => {
+    const relations = table.relations || [];
+
+    if (relations.length) {
+        relations.forEach(schemaRelation => {
+            const { relationIdentificationColumnName } = schemaRelation.metaInfo || {};
+
+            if (relationIdentificationColumnName) {
+                const identificationColumn = getColumnByNameAndTable(
+                  targetAppColumnsByNameByTable,
+                  schemaRelation.toTableName,
+                  relationIdentificationColumnName
+                );
+
+                if (identificationColumn) {
+                    schemaRelation.metaInfo.relationIdentificationColumnId = identificationColumn.columnId;
+                }
+            }
+        });
+    }
+}
+
 const enrichColumnsWithRelationIdentificationData = (schema, targetApp) => {
     const targetAppColumnsByNameByTable = buildColumnsByNameByTable(targetApp.tables);
     const targetAppRelationsByIdByTable = buildRelationsByIdByTable(targetApp.tables);
     const targetAppColumnsById = buildColumnsById(targetApp.tables);
 
-    schema.tables.forEach(table => {
-        const relations = table.relations || [];
-
-        if (relations.length) {
-            relations.forEach(schemaRelation => {
-                const { relationIdentificationColumnName } = schemaRelation.metaInfo || {};
-
-                if (relationIdentificationColumnName) {
-                    const identificationColumn = getColumnByNameAndTable(
-                      targetAppColumnsByNameByTable,
-                      schemaRelation.toTableName,
-                      relationIdentificationColumnName
-                    );
-
-                    if (identificationColumn) {
-                        schemaRelation.metaInfo.relationIdentificationColumnId = identificationColumn.columnId;
-
-                        const targetRelation = getTargetRelationByIdAndTable(
-                          targetAppRelationsByIdByTable,
-                          schemaRelation.fromTableName,
-                          schemaRelation.name
-                        );
-
-                        if (targetRelation?.metaInfo?.relationIdentificationColumnId) {
-                            const relatedColumn = targetAppColumnsById[targetRelation.metaInfo.relationIdentificationColumnId];
-
-                            targetRelation.metaInfo.relationIdentificationColumnName = relatedColumn.name;
-                        }
-                    }
-                }
-            });
-        }
-    });
+    schema.tables.forEach(table => enrichSchemaColumnsWithRelationIdentificationIds(table, targetAppColumnsByNameByTable));
+    targetApp.tables.forEach(table => enrichTargetAppColumnsWithRelationIdentificationNames(table, targetAppRelationsByIdByTable, targetAppColumnsById));
 };
 
 const buildAppTablesMap = apps => {
