@@ -352,10 +352,10 @@ class Backendless {
           .then(res => res.data)
     }
 
-    async getAppCustomApiKeys(app) {
-        const appSettings = await this.getAppSettings(app.id)
+    async getAppCustomApiKeys(appId) {
+        const appSettings = await this.getAppSettings(appId)
 
-        app.apiKeys = appSettings.apiKeys
+        return appSettings.apiKeys
           .filter(key => key.deviceType === 'CUSTOM')
           .map(key => key.name)
           .sort()
@@ -442,8 +442,10 @@ class Backendless {
         return this.instance.put(`${appId}/console/security/assignedroles`, {users, roles})
     }
 
-    static dump(app, path, verbose) {
+    static async dump(app, path, verbose, api) {
         const {sort, saveDataToFile} = Backendless
+
+        app.apiKeys = await api.getAppCustomApiKeys(app.id)
 
         const removeRoleId = role => delete role.roleId
 

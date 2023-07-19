@@ -110,6 +110,15 @@ const byVirtualColumnsComingLast = (columnsMap, schemaPath) => (columnNameA, col
     const columnA = columnsMap[columnNameA][schemaPath]
     const columnB = columnsMap[columnNameB][schemaPath]
 
+    // handle cases when some columns are missing as schemas on different envs can be different
+    if (!columnA && !columnB) {
+        return 0
+    } else if (!columnA) {
+        return -1
+    } else if (!columnB) {
+        return 1
+    }
+
     if (columnA.expression && !columnB.expression) {
         return 1
     } else if (!columnA.expression && columnB.expression) {

@@ -44,8 +44,7 @@ module.exports = options => {
         .then(() => (checkList[API] || checkList[API_PERMS]) && backendless.getAppServices())
         .then(() => checkList[API_PERMS] && backendless.getAppServicesRolePermissions())
         .then(() => apps = backendless.getApps())
-        .then(() => backendless.getAppCustomApiKeys(apps[0]))
-        .then(() => dumpPath && BackendlessConsole.dump(apps[0], dumpPath, verboseOutput))
+        .then(() => dumpPath && BackendlessConsole.dump(apps[0], dumpPath, verboseOutput, backendless))
         .then(() => {
             if (apps.length > 1) {
                 return Promise.resolve()
