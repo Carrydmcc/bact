@@ -305,6 +305,26 @@ class Backendless {
         return runInParallel(tasks, 10)
     }
 
+    getAppCustomApiKeys() {
+        console.log('Fetching custom API keys..')
+
+        return Promise.all(
+          filterLive(this.appList).map(app => {
+              app.id = app.id || app.appId
+
+              if (app.id) {
+                  return this.instance.get(`/${app.id}/console/appsettings`)
+                    .then(({data}) => {
+                        return app.apiKeys = data.apiKeys
+                          .filter(key => key.deviceType === 'CUSTOM')
+                          .map(key => key.name)
+                          .sort()
+                    })
+              }
+          })
+        )
+    }
+
     /* Get main app meta data and return */
     getAppMeta() {
         return this.login()
@@ -345,20 +365,6 @@ class Backendless {
         })
 
         return [controlApp, ...appsToCheck]
-    }
-
-    getAppSettings(appId) {
-        return this.instance.get(`/${appId}/console/appsettings`)
-          .then(res => res.data)
-    }
-
-    async getAppCustomApiKeys(appId) {
-        const appSettings = await this.getAppSettings(appId)
-
-        return appSettings.apiKeys
-          .filter(key => key.deviceType === 'CUSTOM')
-          .map(key => key.name)
-          .sort()
     }
 
     addTable(appId, name) {
@@ -442,10 +448,8 @@ class Backendless {
         return this.instance.put(`${appId}/console/security/assignedroles`, {users, roles})
     }
 
-    static async dump(app, path, verbose, api) {
+    static dump(app, path, verbose) {
         const {sort, saveDataToFile} = Backendless
-
-        app.apiKeys = await api.getAppCustomApiKeys(app.id)
 
         const removeRoleId = role => delete role.roleId
 

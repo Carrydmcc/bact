@@ -5,7 +5,8 @@ const CheckList = {
     API        : 'api',
     TABLE_PERMS: 'table_perms',
     ROLE_PERMS : 'role_perms',
-    API_PERMS  : 'api_perms'
+    API_PERMS  : 'api_perms',
+    API_KEYS   : 'api_keys'
 }
 
 module.exports = [
