@@ -455,30 +455,22 @@ class Backendless {
             }
         }
 
-        const resolveRelationIdentificationColumns = tables => {
-            const columnsById = _.keyBy(_.flatMap(tables, 'columns'), 'columnId')
-
-            tables.forEach(table => {
-                const relations = table.relations || []
-
-                if (relations.length) {
-                    relations.forEach(relation => {
-                        const { relationIdentificationColumnId } = relation.metaInfo || {}
-
-                        if (relationIdentificationColumnId) {
-                            relation.metaInfo.relationIdentificationColumnName = columnsById[relationIdentificationColumnId].name
-                        }
-                    })
-                }
-            })
-        }
+        const columnsById = _.keyBy(_.flatMap(app.tables, 'columns'), 'columnId')
 
         const cleanRelation = relation => {
             delete relation.columnId
             delete relation.fromTableId
             delete relation.toTableId
 
-            relation.metaInfo && delete relation.metaInfo.relationIdentificationColumnId
+            if (relation.metaInfo) {
+                const { relationIdentificationColumnId } = relation.metaInfo
+
+                if (relationIdentificationColumnId) {
+                    relation.metaInfo.relationIdentificationColumnName = columnsById[relationIdentificationColumnId].name
+                }
+
+                delete relation.metaInfo.relationIdentificationColumnId
+            }
         }
 
         const cleanTable = table => {
@@ -491,8 +483,6 @@ class Backendless {
         }
 
         app.tables = app.tables.filter(table => !['orders_dump', 'tmp'].find(prefix => table.name.startsWith(prefix)))
-
-        resolveRelationIdentificationColumns(app.tables)
 
         app.tables.forEach(cleanTable)
         app.roles.forEach(removeRoleId)
