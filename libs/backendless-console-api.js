@@ -308,21 +308,20 @@ class Backendless {
     getAppCustomApiKeys() {
         console.log('Fetching custom API keys..')
 
-        return Promise.all(
-          filterLive(this.appList).map(app => {
-              app.id = app.id || app.appId
+        const tasks = []
 
-              if (app.id) {
-                  return this.instance.get(`/${app.id}/console/appsettings`)
-                    .then(({data}) => {
-                        return app.apiKeys = data.apiKeys
-                          .filter(key => key.deviceType === 'CUSTOM')
-                          .map(key => key.name)
-                          .sort()
-                    })
-              }
-          })
-        )
+        filterLive(this.appList).forEach(app => {
+            tasks.push(() =>
+              this.instance.get(`${this._getConsoleApiUrl(app)}/appsettings`)
+                .then(({data}) => app.apiKeys = data.apiKeys
+                  .filter(key => key.deviceType === 'CUSTOM')
+                  .map(key => key.name)
+                  .sort()
+                )
+            )
+        })
+
+        return runInParallel(tasks, 10)
     }
 
     /* Get main app meta data and return */
