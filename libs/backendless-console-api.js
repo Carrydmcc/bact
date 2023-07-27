@@ -321,6 +321,25 @@ class Backendless {
         return runInParallel(tasks, 10)
     }
 
+    getAppCustomApiKeys() {
+        console.log('Fetching custom API keys..')
+
+        const tasks = []
+
+        filterLive(this.appList).forEach(app => {
+            tasks.push(() =>
+              this.instance.get(`${this._getConsoleApiUrl(app)}/appsettings`)
+                .then(({data}) => app.apiKeys = data.apiKeys
+                  .filter(key => key.deviceType === 'CUSTOM')
+                  .map(key => key.name)
+                  .sort()
+                )
+            )
+        })
+
+        return runInParallel(tasks, 10)
+    }
+
     /* Get main app meta data and return */
     getAppMeta() {
         return this.login()
@@ -361,20 +380,6 @@ class Backendless {
         })
 
         return [controlApp, ...appsToCheck]
-    }
-
-    getAppSettings(appId) {
-        return this.instance.get(`/${appId}/console/appsettings`)
-          .then(res => res.data)
-    }
-
-    async getAppCustomApiKeys(app) {
-        const appSettings = await this.getAppSettings(app.id)
-
-        app.apiKeys = appSettings.apiKeys
-          .filter(key => key.deviceType === 'CUSTOM')
-          .map(key => key.name)
-          .sort()
     }
 
     addTable(appId, name) {

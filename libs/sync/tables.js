@@ -106,6 +106,28 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
     return Promise.resolve()
 }
 
+const byVirtualColumnsComingLast = (columnsMap, schemaPath) => (columnNameA, columnNameB) => {
+    const columnA = columnsMap[columnNameA][schemaPath]
+    const columnB = columnsMap[columnNameB][schemaPath]
+
+    // handle cases when some columns are missing as schemas on different envs can be different
+    if (!columnA && !columnB) {
+        return 0
+    } else if (!columnA) {
+        return -1
+    } else if (!columnB) {
+        return 1
+    }
+
+    if (columnA.expression && !columnB.expression) {
+        return 1
+    } else if (!columnA.expression && columnB.expression) {
+        return -1
+    } else {
+        return 0
+    }
+}
+
 const syncColumns = (api, apps, opts) => {
     const appTablesMap = buildAppTablesMap(apps)
     const [sourceApp, ...targetApps] = apps
@@ -115,6 +137,7 @@ const syncColumns = (api, apps, opts) => {
         .reduce((promise, tableName) => {
             const columnsMap = appTablesMap[tableName]
             let columnNamesList = Object.keys(columnsMap)
+              .sort(byVirtualColumnsComingLast(columnsMap, sourceApp.name))
 
             if(tableName === 'Users') {
                 const identityColumn = columnNamesList.find(el => columnsMap[el][sourceApp.name].identity)
