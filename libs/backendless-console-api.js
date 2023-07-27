@@ -171,11 +171,23 @@ class Backendless {
     getAppDataTables() {
         console.log('Fetching schema..')
 
-        const normalizeTable = table => {
+        const normalizeTable = (table, columnsById) => {
             table.columns = table.columns.filter(column => !SYSTEM_COLUMNS.includes(column.name))
             table.columns.forEach(column => {
                 if (column.dataType === 'BOOLEAN' && column.defaultValue) {
                     column.defaultValue = column.defaultValue === 'true'
+                }
+            })
+
+            table.relations.forEach(relation => {
+                if (relation.metaInfo) {
+                    const { relationIdentificationColumnId } = relation.metaInfo
+
+                    if (relationIdentificationColumnId) {
+                        relation.metaInfo.relationIdentificationColumnName = columnsById[relationIdentificationColumnId].name
+                    }
+
+                    delete relation.metaInfo.relationIdentificationColumnId
                 }
             })
 
@@ -185,7 +197,11 @@ class Backendless {
         return Promise.all(
             filterLive(this.appList).map(app => {
                 return this.instance.get(`${this._getConsoleApiUrl(app)}/data/tables`)
-                    .then(({data}) => app.tables = _.sortBy(data.tables, 'name').map(normalizeTable))
+                    .then(({data}) => {
+                        const columnsById = _.keyBy(_.flatMap(data.tables, 'columns'), 'columnId')
+
+                        return app.tables = _.sortBy(data.tables, 'name').map(t => normalizeTable(t, columnsById))
+                    })
             })
         )
     }
@@ -379,12 +395,23 @@ class Backendless {
         return this.instance.post(path, column)
     }
 
-    updateColumn(appId, table, column) {
+    updateColumn(app, table, column) {
         const columnName = column.name || column.columnName
-        let path = `${tableColumnsUrl(appId, table)}/${columnName}`
+        let path = `${tableColumnsUrl(app.id, table)}/${columnName}`
 
         if (isRelation(column)) {
             path = path.replace(columnName, 'relation')
+
+            if(column.relationIdentificationColumnName) {
+                const columnByTableNameMap = _.mapValues(_.keyBy(app.tables, 'name'), table => _.keyBy(table.columns, 'name'))
+
+                const identificationColumn = columnByTableNameMap[column.toTableName][column.relationIdentificationColumnName]
+
+                if (identificationColumn) {
+                    column.metaInfo = {}
+                    column.metaInfo.relationIdentificationColumnId = identificationColumn.columnId
+                }
+            }
         }
 
         return this.instance.put(path, column)
@@ -455,22 +482,10 @@ class Backendless {
             }
         }
 
-        const columnsById = _.keyBy(_.flatMap(app.tables, 'columns'), 'columnId')
-
         const cleanRelation = relation => {
             delete relation.columnId
             delete relation.fromTableId
             delete relation.toTableId
-
-            if (relation.metaInfo) {
-                const { relationIdentificationColumnId } = relation.metaInfo
-
-                if (relationIdentificationColumnId) {
-                    relation.metaInfo.relationIdentificationColumnName = columnsById[relationIdentificationColumnId].name
-                }
-
-                delete relation.metaInfo.relationIdentificationColumnId
-            }
         }
 
         const cleanTable = table => {

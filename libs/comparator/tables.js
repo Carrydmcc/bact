@@ -32,19 +32,14 @@ const buildColumnsMap = table => {
                     required: relation.required,
                     unique: relation.unique,
                     autoLoad: relation.autoLoad,
-                    relationshipType: relation.relationshipType
+                    relationshipType: relation.relationshipType,
+                    relationIdentificationColumnName: relation.metaInfo?.relationIdentificationColumnName
                 }
 
                 const options = [`${relation.toTableName}(${relationTypeAlias(column.relationshipType)})`]
                 column.unique && (options.push('UQ'))
                 column.required && (options.push('NN'))
-
-                if (relation.metaInfo?.relationIdentificationColumnId) {
-                    column.metaInfo || (column.metaInfo = {})
-                    column.metaInfo.relationIdentificationColumnId = relation.metaInfo.relationIdentificationColumnId
-
-                    options.push(relation.metaInfo.relationIdentificationColumnName)
-                }
+                column.relationIdentificationColumnName && (options.push(column.relationIdentificationColumnName))
 
                 column.options = options
                 column.optionsString = options.join(', ')
@@ -113,84 +108,7 @@ const printDifferences = (apps, appTablesMap) => {
     return result;
 }
 
-const buildColumnsByNameByTable = tables => {
-    return _.mapValues(_.keyBy(tables, 'name'), table => _.keyBy(table.columns, 'name'));
-};
-
-const buildRelationsByIdByTable = tables => {
-    return _.mapValues(_.keyBy(tables, 'name'), table => _.keyBy(table.relations, 'name'));
-};
-
-const buildColumnsById = tables => {
-    return _.keyBy(_.flatMap(tables, 'columns'), 'columnId');
-};
-
-const getColumnByNameAndTable = (columnsByNameByTable, tableName, columnName) => {
-    return columnsByNameByTable[tableName]?.[columnName];
-};
-
-const getTargetRelationByIdAndTable = (relationsByIdByTable, tableName, relationName) => {
-    return relationsByIdByTable[tableName]?.[relationName] || {};
-};
-
-const enrichTargetAppColumnsWithRelationIdentificationNames = (table, targetAppRelationsByIdByTable, targetAppColumnsById) => {
-    const relations = table.relations || [];
-
-    if (relations.length) {
-        relations.forEach(relation => {
-            const { relationIdentificationColumnId } = relation.metaInfo || {};
-
-            if (relationIdentificationColumnId) {
-                const targetRelation = getTargetRelationByIdAndTable(
-                  targetAppRelationsByIdByTable,
-                  relation.fromTableName,
-                  relation.name
-                );
-
-                if (targetRelation?.metaInfo?.relationIdentificationColumnId) {
-                    const relatedColumn = targetAppColumnsById[targetRelation.metaInfo.relationIdentificationColumnId];
-
-                    targetRelation.metaInfo.relationIdentificationColumnName = relatedColumn.name;
-                }
-            }
-        });
-    }
-}
-
-const enrichSchemaColumnsWithRelationIdentificationIds = (table, targetAppColumnsByNameByTable) => {
-    const relations = table.relations || [];
-
-    if (relations.length) {
-        relations.forEach(schemaRelation => {
-            const { relationIdentificationColumnName } = schemaRelation.metaInfo || {};
-
-            if (relationIdentificationColumnName) {
-                const identificationColumn = getColumnByNameAndTable(
-                  targetAppColumnsByNameByTable,
-                  schemaRelation.toTableName,
-                  relationIdentificationColumnName
-                );
-
-                if (identificationColumn) {
-                    schemaRelation.metaInfo.relationIdentificationColumnId = identificationColumn.columnId;
-                }
-            }
-        });
-    }
-}
-
-const enrichColumnsWithRelationIdentificationData = (schema, targetApp) => {
-    const targetAppColumnsByNameByTable = buildColumnsByNameByTable(targetApp.tables);
-    const targetAppRelationsByIdByTable = buildRelationsByIdByTable(targetApp.tables);
-    const targetAppColumnsById = buildColumnsById(targetApp.tables);
-
-    schema.tables.forEach(table => enrichSchemaColumnsWithRelationIdentificationIds(table, targetAppColumnsByNameByTable));
-    targetApp.tables.forEach(table => enrichTargetAppColumnsWithRelationIdentificationNames(table, targetAppRelationsByIdByTable, targetAppColumnsById));
-};
-
 const buildAppTablesMap = apps => {
-    enrichColumnsWithRelationIdentificationData(...apps)
-
     return apps.reduce((appTablesMap, app) => {
         const tablesMapByName = _.keyBy(app.tables, 'name')
 

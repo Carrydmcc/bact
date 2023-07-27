@@ -87,7 +87,7 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
                     await bulkUpdate(api, app, tableName, where, { [columnName]: sourceColumn.defaultValue })
                 }
 
-                return api.updateColumn(app.id, tableName, sourceColumn)
+                return api.updateColumn(app, tableName, sourceColumn)
             })
 
     const removeColumn = () =>
