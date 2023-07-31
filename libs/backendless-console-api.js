@@ -482,7 +482,7 @@ class Backendless {
             delete column.columnId
             delete column.metaInfo
 
-            if (column.dataSize && !['STRING', 'FILE_REF'].includes(column.dataType)) {
+            if (column.hasOwnProperty('dataSize') && !['STRING', 'FILE_REF'].includes(column.dataType)) {
                 delete column.dataSize
             }
         }
@@ -501,8 +501,6 @@ class Backendless {
             (table.columns || []).forEach(cleanColumn);
             (table.relations || []).forEach(cleanRelation);
         }
-
-        app.tables = app.tables.filter(table => !['orders_dump', 'tmp'].find(prefix => table.name.startsWith(prefix)))
 
         app.tables.forEach(cleanTable)
         app.roles.forEach(removeRoleId)
@@ -540,13 +538,15 @@ class Backendless {
         app.services.forEach(service => {
             service.methods = _.sortBy(service.methods, ['method'])
             service.methods.forEach(method => {
-                const roles = {}
+                if (method.roles) {
+                    const roles = {}
 
-                Object.keys(method.roles).sort().forEach(roleName => {
-                    roles[roleName] = method.roles[roleName]
-                })
+                    Object.keys(method.roles).sort().forEach(roleName => {
+                        roles[roleName] = method.roles[roleName]
+                    })
 
-                method.roles = roles
+                    method.roles = roles
+                }
             })
         })
 
