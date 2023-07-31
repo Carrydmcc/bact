@@ -32,12 +32,14 @@ const buildColumnsMap = table => {
                     required: relation.required,
                     unique: relation.unique,
                     autoLoad: relation.autoLoad,
-                    relationshipType: relation.relationshipType
+                    relationshipType: relation.relationshipType,
+                    relationIdentificationColumnName: relation.metaInfo?.relationIdentificationColumnName
                 }
 
                 const options = [`${relation.toTableName}(${relationTypeAlias(column.relationshipType)})`]
                 column.unique && (options.push('UQ'))
                 column.required && (options.push('NN'))
+                column.relationIdentificationColumnName && (options.push(column.relationIdentificationColumnName))
 
                 column.options = options
                 column.optionsString = options.join(', ')
@@ -107,7 +109,6 @@ const printDifferences = (apps, appTablesMap) => {
 }
 
 const buildAppTablesMap = apps => {
-
     return apps.reduce((appTablesMap, app) => {
         const tablesMapByName = _.keyBy(app.tables, 'name')
 
