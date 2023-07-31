@@ -502,7 +502,9 @@ class Backendless {
             (table.relations || []).forEach(cleanRelation);
         }
 
-        app.tables = app.tables.filter(table => !['orders_dump', 'tmp'].find(prefix => table.name.startsWith(prefix)))
+        const TABLES_PREFIXES_TO_IGNORE = ['orders_dump', 'tmp', 'NSOrder', 'NSFFMTItem'];
+
+        app.tables = app.tables.filter(table => !TABLES_PREFIXES_TO_IGNORE.find(prefix => table.name.startsWith(prefix)))
 
         app.tables.forEach(cleanTable)
         app.roles.forEach(removeRoleId)
