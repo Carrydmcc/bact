@@ -13,68 +13,64 @@ const compareCustomApiKeys = require('../libs/comparator/api-keys')
 const compareAppPermissions = require('../libs/comparator/app-permissions')
 const sync = require('../libs/sync')
 
-const {SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS, API_KEYS,  } = require('./constants/command-options').CheckList
+const {SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS, API_KEYS,} = require('./constants/command-options').CheckList
 
 module.exports = options => {
 
-    const checkList = options.checkList.reduce((o, key) => {
-        o[key] = true
-        return o
-    }, {})
+  const checkList = options.checkList.reduce((o, key) => {
+    o[key] = true
+    return o
+  }, {})
 
-    const {
-        username, password, appControl, appsToCheck, dumpPath, reportingDir, beURL,
-        timeout, verboseOutput, silent, monitorMode, syncMode
-    } = options
+  const {
+    username, password, appControl, appsToCheck, dumpPath, reportingDir, beURL,
+    timeout, verboseOutput, silent, monitorMode, syncMode
+  } = options
 
-    const backendless = new BackendlessConsole(
-        username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput)
+  const backendless = new BackendlessConsole(
+    username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput)
 
-    let apps
+  let apps
 
-    const getAppRoles = () =>
-        Promise.resolve()
-            .then(() => backendless.getAppRoles())
-            .then(() => backendless.getAppRolePermissions())
-
-    return backendless.getAppMeta()
-        .then(() => (checkList[SCHEMA] || checkList[TABLE_PERMS]) && backendless.getAppDataTables())
-        .then(() => (checkList[ROLE_PERMS] || checkList[API_PERMS]) && getAppRoles())
-        // .then(() => backendless.getAppDataTableUserPermissions())
-        .then(() => checkList[TABLE_PERMS] && backendless.getAppDataTableRolePermissions())
-        .then(() => (checkList[API] || checkList[API_PERMS]) && backendless.getAppServices())
-        .then(() => checkList[API_PERMS] && backendless.getAppServicesRolePermissions())
-        .then(() => checkList[API_KEYS] && backendless.getAppCustomApiKeys())
-        .then(() => apps = backendless.getApps())
-        .then(() => dumpPath && BackendlessConsole.dump(apps[0], dumpPath, verboseOutput))
-        .then(() => {
-            if (apps.length > 1) {
-                return Promise.resolve()
-                    .then(() => checkList[SCHEMA] && compareTables(apps))
-                    .then(hasDiferences => (checkList[ROLE_PERMS] && compareAppPermissions(apps)) || hasDiferences)
-                    .then(hasDiferences => (checkList[TABLE_PERMS] && compareTablesPermissions(apps)) || hasDiferences)
-                    .then(hasDiferences => (checkList[API] && compareEndpoints(apps)) || hasDiferences)
-                    .then(hasDiferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDiferences)
-                    .then(hasDiferences => (checkList[API_KEYS] && compareCustomApiKeys(apps)) || hasDiferences)
-                    .then(hasDiferences => {
-                        if (hasDiferences && syncMode) {
-                            return sync(backendless, apps, {syncList: checkList, silent})
-                                .then(() => hasDiferences)
-                        }
-
-                        return hasDiferences
-                    })
-                    .then(hasDiferences => {
-                        if (hasDiferences && monitorMode) {
-                            throw new Error('Differences detected')
-                        }
-                    })
+  return backendless.getAppMeta()
+    .then(() => (checkList[SCHEMA] || checkList[TABLE_PERMS]) && backendless.getAppDataTables())
+    .then(() => backendless.getAppRoles())
+    .then(() => (checkList[ROLE_PERMS] || checkList[API_PERMS]) && backendless.getAppRolePermissions())
+    // .then(() => backendless.getAppDataTableUserPermissions())
+    .then(() => checkList[TABLE_PERMS] && backendless.getAppDataTableRolePermissions())
+    .then(() => (checkList[API] || checkList[API_PERMS]) && backendless.getAppServices())
+    .then(() => checkList[API_PERMS] && backendless.getAppServicesRolePermissions())
+    .then(() => checkList[API_KEYS] && backendless.getAppCustomApiKeys())
+    .then(() => apps = backendless.getApps())
+    .then(() => dumpPath && BackendlessConsole.dump(apps[0], dumpPath, verboseOutput))
+    .then(() => {
+      if (apps.length > 1) {
+        return Promise.resolve()
+          .then(() => checkList[SCHEMA] && compareTables(apps))
+          .then(hasDiferences => (checkList[ROLE_PERMS] && compareAppPermissions(apps)) || hasDiferences)
+          .then(hasDiferences => (checkList[TABLE_PERMS] && compareTablesPermissions(apps)) || hasDiferences)
+          .then(hasDiferences => (checkList[API] && compareEndpoints(apps)) || hasDiferences)
+          .then(hasDiferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDiferences)
+          .then(hasDiferences => (checkList[API_KEYS] && compareCustomApiKeys(apps)) || hasDiferences)
+          .then(hasDiferences => {
+            if (hasDiferences && syncMode) {
+              return sync(backendless, apps, {syncList: checkList, silent})
+                .then(() => hasDiferences)
             }
-        })
-        .catch(err => {
-            console.log(util.inspect(err))
-            console.log(chalk.bold.red(err))
 
-            throw err
-        })
+            return hasDiferences
+          })
+          .then(hasDiferences => {
+            if (hasDiferences && monitorMode) {
+              throw new Error('Differences detected')
+            }
+          })
+      }
+    })
+    .catch(err => {
+      console.log(util.inspect(err))
+      console.log(chalk.bold.red(err))
+
+      throw err
+    })
 }
