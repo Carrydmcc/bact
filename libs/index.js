@@ -24,7 +24,7 @@ module.exports = options => {
 
   const {
     username, password, appControl, appsToCheck, dumpPath, reportingDir, beURL,
-    timeout, verboseOutput, silent, monitorMode, syncMode, tablesToIgnore, columnsToIgnore,
+    timeout, verboseOutput, silent, monitorMode, syncMode, tablesToIgnore, columnsToIgnore = [],
   } = options
 
   const backendless = new BackendlessConsole(
