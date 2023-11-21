@@ -15,8 +15,6 @@ writeFile = promisify(writeFile)
 readFile = promisify(readFile)
 stat = promisify(stat)
 
-const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId']
-
 const filterLive = apps => apps.filter(app => !app.fromJSON)
 
 const tableColumnsUrl = (appId, table) => `${appId}/console/data/tables/${table}/columns`
@@ -162,11 +160,11 @@ class Backendless {
     )
   }
 
-  getAppDataTables() {
+  getAppDataTables(columnsToIgnore) {
     console.log('Fetching schema..')
 
     const normalizeTable = (table, columnsById) => {
-      table.columns = table.columns.filter(column => !SYSTEM_COLUMNS.includes(column.name))
+      table.columns = table.columns.filter(column => !columnsToIgnore.includes(column.name))
       table.columns.forEach(column => {
         if (column.dataType === 'BOOLEAN' && column.defaultValue) {
           column.defaultValue = column.defaultValue === 'true'
@@ -466,7 +464,7 @@ class Backendless {
     return this.instance.put(`${appId}/console/security/assignedroles`, { users, roles })
   }
 
-  static dump(app, path, verbose) {
+  static dump(app, path, verbose, tablesToIgnore) {
     const { sort, saveDataToFile } = Backendless
 
     const removeRoleId = role => delete role.roleId
@@ -495,9 +493,7 @@ class Backendless {
       (table.relations || []).forEach(cleanRelation)
     }
 
-    const TABLES_PREFIXES_TO_IGNORE = ['orders_dump', 'tmp', 'NSOrder', 'NSFFMTItem']
-
-    app.tables = app.tables.filter(table => !TABLES_PREFIXES_TO_IGNORE.find(prefix => table.name.startsWith(prefix)))
+    app.tables = app.tables.filter(table => !tablesToIgnore.find(prefix => table.name.startsWith(prefix)))
 
     app.tables.forEach(cleanTable)
     app.roles.forEach(removeRoleId)

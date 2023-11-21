@@ -1,13 +1,11 @@
 const _ = require('lodash');
 const Table = require('cli-table');
 
-const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId', 'blUserLocale']
-
-const buildColumnsMap = table => {
+const buildColumnsMap = (table, columnsToIgnore) => {
     const result = {}
 
     table.columns.forEach(column => {
-        if (!SYSTEM_COLUMNS.includes(column.name)) {
+        if (!columnsToIgnore.includes(column.name)) {
             const options = [column.dataType]
 
             column.unique && (options.push('UQ'))
@@ -108,14 +106,14 @@ const printDifferences = (apps, appTablesMap) => {
     return result;
 }
 
-const buildAppTablesMap = apps => {
+const buildAppTablesMap = (apps, columnsToIgnore) => {
     return apps.reduce((appTablesMap, app) => {
         const tablesMapByName = _.keyBy(app.tables, 'name')
 
         Object.keys(tablesMapByName).forEach(tableName => {
             appTablesMap[tableName] || (appTablesMap[tableName] = {})
 
-            const columnsMap = buildColumnsMap(tablesMapByName[tableName])
+            const columnsMap = buildColumnsMap(tablesMapByName[tableName], columnsToIgnore)
 
             Object.keys(columnsMap).forEach(columnName => {
                 appTablesMap[tableName][columnName] || (appTablesMap[tableName][columnName] = {})
@@ -127,10 +125,10 @@ const buildAppTablesMap = apps => {
     }, {})
 }
 
-module.exports = apps => {
-    const appTablesMap = buildAppTablesMap(apps)
+module.exports = (apps, columnsToIgnore) => {
+  const appTablesMap = buildAppTablesMap(apps, columnsToIgnore)
 
-    return printDifferences(apps, appTablesMap);
-};
+  return printDifferences(apps, appTablesMap)
+}
 
 module.exports.buildAppTablesMap = buildAppTablesMap

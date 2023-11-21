@@ -51,8 +51,7 @@ const printDifferences = (apps, appRolesMap) => {
     })
 
     if (result) {
-        console.log('\nRoles Permissions:')
-        console.log(table.toString())
+        console.log('\nRoles Permissions:\n' + table.toString())
     }
 
     return result
