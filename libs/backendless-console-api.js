@@ -5,11 +5,11 @@ require('axios-debug-log')
 const _ = require('lodash')
 const axios = require('axios')
 const chalk = require('chalk')
-const { promisify } = require('util')
+const {promisify} = require('util')
 
-const { runInParallel } = require('../utils/async')
+const {runInParallel} = require('../utils/async')
 
-let { readFile, writeFile, stat } = require('fs')
+let {readFile, writeFile, stat} = require('fs')
 
 writeFile = promisify(writeFile)
 readFile = promisify(readFile)
@@ -27,7 +27,7 @@ const normalizeTablePermissions = roles => {
   _.sortBy(roles, ['name']).forEach(role => {
     result[role.name] = {}
 
-    _.sortBy(role.permissions, 'operation').forEach(({ operation, access }) => {
+    _.sortBy(role.permissions, 'operation').forEach(({operation, access}) => {
       result[role.name][operation] = access
     })
   })
@@ -87,13 +87,13 @@ class Backendless {
       password,
       reportingDir,
       username,
-      verboseOutput,
+      verboseOutput
     })
   }
 
   /* Build app headers given appId and secretKey */
-  _getAppHeaders({ appId, secretKey }) {
-    return { headers: { 'application-id': appId, 'secret-key': secretKey } }
+  _getAppHeaders({appId, secretKey}) {
+    return { headers: {'application-id': appId, 'secret-key': secretKey} }
   }
 
   /* Build appversion api path provided currentVersionId */
@@ -103,7 +103,7 @@ class Backendless {
 
   /* Authenticate user & add auth-key to header for future requests */
   login() {
-    return this.instance.post('/console/home/login', { 'login': this.username, 'password': this.password })
+    return this.instance.post('/console/home/login', {'login': this.username, 'password': this.password})
       .then(res => this.instance.defaults.headers['auth-key'] = res.headers['auth-key'])
   }
 
@@ -140,7 +140,7 @@ class Backendless {
     const isAppInCheckContext = app => this.appsContext.includes(app.name || app.appName)
 
     return this.instance.get('/console/applications')
-      .then(({ data: appList }) => this.appList.push(...appList.filter(isAppInCheckContext)))
+      .then(({data: appList}) => this.appList.push(...appList.filter(isAppInCheckContext)))
   }
 
   getAppSecrets() {
@@ -150,13 +150,13 @@ class Backendless {
 
         if (app.id) {
           return this.instance.get(`/${app.id}/console/appsettings`)
-            .then(({ data }) => {
+            .then(({data}) => {
               const REST_KEY = data.apiKeys.find(({ name }) => name === 'REST').apiKey
 
               return app.secretKey = REST_KEY
             })
         }
-      }),
+      })
     )
   }
 
@@ -173,7 +173,7 @@ class Backendless {
 
       table.relations.forEach(relation => {
         if (relation.metaInfo) {
-          const { relationIdentificationColumnId } = relation.metaInfo
+          const {relationIdentificationColumnId} = relation.metaInfo
 
           if (relationIdentificationColumnId) {
             relation.metaInfo.relationIdentificationColumnName = columnsById[relationIdentificationColumnId].name
@@ -189,12 +189,12 @@ class Backendless {
     return Promise.all(
       filterLive(this.appList).map(app => {
         return this.instance.get(`${this._getConsoleApiUrl(app)}/data/tables`)
-          .then(({ data }) => {
+          .then(({data}) => {
             const columnsById = _.keyBy(_.flatMap(data.tables, 'columns'), 'columnId')
 
             return app.tables = _.sortBy(data.tables, 'name').map(t => normalizeTable(t, columnsById))
           })
-      }),
+      })
     )
   }
 
@@ -207,8 +207,8 @@ class Backendless {
 
     return Promise.all(
       filterLive(this.appList).map(app => {
-        return this.getRoles(app.id).then(({ data }) => app.roles = data)
-      }),
+        return this.getRoles(app.id).then(({data}) => app.roles = data)
+      })
     )
   }
 
@@ -237,10 +237,10 @@ class Backendless {
         return Promise.all(
           app.tables.map(table => {
             return this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/users`)
-              .then(({ data }) => table.users = normalizeTablePermissions(data.data))
-          }),
+              .then(({data}) => table.users = normalizeTablePermissions(data.data))
+          })
         )
-      }),
+      })
     )
   }
 
@@ -253,7 +253,7 @@ class Backendless {
       app.tables.map(table => {
         tasks.push(() =>
           this.instance.get(`${this._getConsoleApiUrl(app)}/security/data/${table.tableId}/roles`)
-            .then(({ data }) => table.roles = normalizeTablePermissions(data)),
+            .then(({data}) => table.roles = normalizeTablePermissions(data))
         )
       })
     })
@@ -267,13 +267,13 @@ class Backendless {
     const tasks = []
 
     return Promise.all(filterLive(this.appList).map(async app => {
-      return this.instance.get(this._getConsoleApiUrl(app) + '/localservices').then(({ data: services }) => {
+      return this.instance.get(this._getConsoleApiUrl(app) + '/localservices').then(({data: services}) => {
         app.services = services
 
         services.forEach(service => {
           tasks.push(() =>
             this.instance.get(`${this._getConsoleApiUrl(app)}/localservices/${service.id}/methods`)
-              .then(({ data: methods }) => service.methods = methods))
+              .then(({data: methods}) => service.methods = methods))
         })
       })
     })).then(() => runInParallel(tasks, 10))
@@ -291,14 +291,14 @@ class Backendless {
         tasks.push(() => {
           return this.instance.get(
             `${this._getConsoleApiUrl(app)}/security/localservices/${service.id}/roles?pageSize=50`)
-            .then(({ data }) => {
+            .then(({data}) => {
               // endpoint permission sync requires roles list
               if (appIndex > 0) {
                 service.roles = data
               }
 
               data.forEach(role => {
-                role.permissions.forEach(({ operation, access }) => {
+                role.permissions.forEach(({operation, access}) => {
                   const method = methodsMap[operation]
 
                   method.roles = method.roles || {}
@@ -321,11 +321,11 @@ class Backendless {
     filterLive(this.appList).forEach(app => {
       tasks.push(() =>
         this.instance.get(`${this._getConsoleApiUrl(app)}/appsettings`)
-          .then(({ data }) => app.apiKeys = data.apiKeys
+          .then(({data}) => app.apiKeys = data.apiKeys
             .filter(key => key.deviceType === 'CUSTOM')
             .map(key => key.name)
-            .sort(),
-          ),
+            .sort()
+          )
       )
     })
 
@@ -353,7 +353,7 @@ class Backendless {
 
   /* Set controlApp & appsToCheck from appList and return copy of data */
   getApps() {
-    const findAppByName = appName => _.find(this.appList, { 'name': appName })
+    const findAppByName = appName => _.find(this.appList, {'name': appName})
     const controlApp = findAppByName(this.controlAppName)
 
     if (!controlApp) {
@@ -374,7 +374,7 @@ class Backendless {
   }
 
   addTable(appId, name) {
-    return this.instance.post(`${appId}/console/data/tables`, { name })
+    return this.instance.post(`${appId}/console/data/tables`, {name})
   }
 
   removeTable(appId, name) {
@@ -457,15 +457,15 @@ class Backendless {
   }
 
   deleteRecord(appId, table, record) {
-    return this.instance.delete(`${appId}/console/data/tables/${table}/records`, { data: [record] })
+    return this.instance.delete(`${appId}/console/data/tables/${table}/records`, {data: [record]})
   }
 
   updateAssignedUserRoles(appId, users, roles) {
-    return this.instance.put(`${appId}/console/security/assignedroles`, { users, roles })
+    return this.instance.put(`${appId}/console/security/assignedroles`, {users, roles})
   }
 
   static dump(app, path, verbose, tablesToIgnore) {
-    const { sort, saveDataToFile } = Backendless
+    const {sort, saveDataToFile} = Backendless
 
     const removeRoleId = role => delete role.roleId
 
@@ -485,12 +485,12 @@ class Backendless {
     }
 
     const cleanTable = table => {
-      delete table.tableId
-      delete table.parentRelations
+      delete table.tableId;
+      delete table.parentRelations;
       delete table.geoRelations;
 
       (table.columns || []).forEach(cleanColumn);
-      (table.relations || []).forEach(cleanRelation)
+      (table.relations || []).forEach(cleanRelation);
     }
 
     app.tables = app.tables.filter(table => !tablesToIgnore.find(prefix => table.name.startsWith(prefix)))
@@ -518,7 +518,7 @@ class Backendless {
   static sort(app) {
     app.tables = _.sortBy(app.tables, ['name'])
     app.tables.forEach(table => {
-      const { columns, relations, geoRelations } = table
+      const {columns, relations, geoRelations} = table
 
       table.columns = columns && _.sortBy(columns, ['name'])
       table.relations = relations && _.sortBy(relations, ['columnName'])

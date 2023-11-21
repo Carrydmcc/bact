@@ -126,9 +126,9 @@ const buildAppTablesMap = (apps, columnsToIgnore) => {
 }
 
 module.exports = (apps, columnsToIgnore) => {
-  const appTablesMap = buildAppTablesMap(apps, columnsToIgnore)
+    const appTablesMap = buildAppTablesMap(apps, columnsToIgnore)
 
-  return printDifferences(apps, appTablesMap)
+    return printDifferences(apps, appTablesMap)
 }
 
 module.exports.buildAppTablesMap = buildAppTablesMap

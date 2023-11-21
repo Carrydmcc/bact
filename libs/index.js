@@ -13,7 +13,7 @@ const compareCustomApiKeys = require('../libs/comparator/api-keys')
 const compareAppPermissions = require('../libs/comparator/app-permissions')
 const sync = require('../libs/sync')
 
-const { SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS, API_KEYS } = require('./constants/command-options').CheckList
+const {SCHEMA, API, TABLE_PERMS, ROLE_PERMS, API_PERMS, API_KEYS,} = require('./constants/command-options').CheckList
 
 module.exports = options => {
 
@@ -23,9 +23,9 @@ module.exports = options => {
   }, {})
 
   const {
-          username, password, appControl, appsToCheck, dumpPath, reportingDir, beURL,
-          timeout, verboseOutput, silent, monitorMode, syncMode, tablesToIgnore, columnsToIgnore,
-        } = options
+    username, password, appControl, appsToCheck, dumpPath, reportingDir, beURL,
+    timeout, verboseOutput, silent, monitorMode, syncMode, tablesToIgnore, columnsToIgnore,
+  } = options
 
   const backendless = new BackendlessConsole(
     username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput)

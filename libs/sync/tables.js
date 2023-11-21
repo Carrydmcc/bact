@@ -136,7 +136,7 @@ const byVirtualColumnsComingLast = (columnsMap, schemaPath) => (columnNameA, col
 }
 
 const syncColumns = (api, apps, opts) => {
-  const appTablesMap = buildAppTablesMap(apps, opts.columnsToIgnore)
+    const appTablesMap = buildAppTablesMap(apps, opts.columnsToIgnore)
     const [sourceApp, ...targetApps] = apps
 
     return Object.keys(appTablesMap)
@@ -169,7 +169,7 @@ const syncColumns = (api, apps, opts) => {
 }
 
 module.exports = (api, apps, opts) =>
-     syncTables(api, apps, opts)
-        .then(() => api.getAppDataTables(opts.columnsToIgnore))
-        .then(() => syncColumns(api, apps, opts))
-        .then(() => cleanup(api, apps))
+   syncTables(api, apps, opts)
+      .then(() => api.getAppDataTables(opts.columnsToIgnore))
+      .then(() => syncColumns(api, apps, opts))
+      .then(() => cleanup(api, apps))
