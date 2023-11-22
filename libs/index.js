@@ -24,16 +24,16 @@ module.exports = options => {
 
   const {
     username, password, appControl, appsToCheck, dumpPath, reportingDir, beURL,
-    timeout, verboseOutput, silent, monitorMode, syncMode, tablesToIgnore, columnsToIgnore = [],
+    timeout, verboseOutput, silent, monitorMode, syncMode, tablesToIgnore = [],
   } = options
 
   const backendless = new BackendlessConsole(
-    username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput)
+    username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput, tablesToIgnore)
 
   let apps
 
   return backendless.getAppMeta()
-    .then(() => (checkList[SCHEMA] || checkList[TABLE_PERMS]) && backendless.getAppDataTables(columnsToIgnore))
+    .then(() => (checkList[SCHEMA] || checkList[TABLE_PERMS]) && backendless.getAppDataTables())
     .then(() => backendless.getAppRoles())
     .then(() => (checkList[ROLE_PERMS] || checkList[API_PERMS]) && backendless.getAppRolePermissions())
     // .then(() => backendless.getAppDataTableUserPermissions())
@@ -42,11 +42,11 @@ module.exports = options => {
     .then(() => checkList[API_PERMS] && backendless.getAppServicesRolePermissions())
     .then(() => checkList[API_KEYS] && backendless.getAppCustomApiKeys())
     .then(() => apps = backendless.getApps())
-    .then(() => dumpPath && BackendlessConsole.dump(apps[0], dumpPath, verboseOutput, tablesToIgnore))
+    .then(() => dumpPath && BackendlessConsole.dump(apps[0], dumpPath, verboseOutput))
     .then(() => {
       if (apps.length > 1) {
         return Promise.resolve()
-          .then(() => checkList[SCHEMA] && compareTables(apps, columnsToIgnore))
+          .then(() => checkList[SCHEMA] && compareTables(apps))
           .then(hasDifferences => (checkList[ROLE_PERMS] && compareAppPermissions(apps)) || hasDifferences)
           .then(hasDifferences => (checkList[TABLE_PERMS] && compareTablesPermissions(apps)) || hasDifferences)
           .then(hasDifferences => (checkList[API] && compareEndpoints(apps)) || hasDifferences)
@@ -54,7 +54,7 @@ module.exports = options => {
           .then(hasDifferences => (checkList[API_KEYS] && compareCustomApiKeys(apps)) || hasDifferences)
           .then(hasDifferences => {
             if (hasDifferences && syncMode) {
-              return sync(backendless, apps, { syncList: checkList, silent, columnsToIgnore })
+              return sync(backendless, apps, { syncList: checkList, silent })
                 .then(() => hasDifferences)
             }
 

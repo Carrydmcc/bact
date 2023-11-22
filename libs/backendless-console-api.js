@@ -36,7 +36,7 @@ const normalizeTablePermissions = roles => {
 }
 
 class Backendless {
-  constructor(username, password, beURL, controlAppName, appNamesToCheck, reportingDir, timeout, verboseOutput) {
+  constructor(username, password, beURL, controlAppName, appNamesToCheck, reportingDir, timeout, verboseOutput, tablesToIgnore) {
     /* Make a list of apps that are contextual to this check */
     const appsContext = _.concat(controlAppName, appNamesToCheck)
 
@@ -87,7 +87,8 @@ class Backendless {
       password,
       reportingDir,
       username,
-      verboseOutput
+      verboseOutput,
+      tablesToIgnore,
     })
   }
 
@@ -160,11 +161,10 @@ class Backendless {
     )
   }
 
-  getAppDataTables(columnsToIgnore) {
+  getAppDataTables() {
     console.log('Fetching schema..')
 
     const normalizeTable = (table, columnsById) => {
-      table.columns = table.columns.filter(column => !columnsToIgnore.includes(column.name))
       table.columns.forEach(column => {
         if (column.dataType === 'BOOLEAN' && column.defaultValue) {
           column.defaultValue = column.defaultValue === 'true'
@@ -192,7 +192,11 @@ class Backendless {
           .then(({data}) => {
             const columnsById = _.keyBy(_.flatMap(data.tables, 'columns'), 'columnId')
 
-            return app.tables = _.sortBy(data.tables, 'name').map(t => normalizeTable(t, columnsById))
+            return app.tables = _.sortBy(
+              data.tables.filter(table => !this.tablesToIgnore.find(prefix => table.name.startsWith(prefix))),
+              'name'
+            )
+              .map(t => normalizeTable(t, columnsById))
           })
       })
     )
@@ -464,7 +468,7 @@ class Backendless {
     return this.instance.put(`${appId}/console/security/assignedroles`, {users, roles})
   }
 
-  static dump(app, path, verbose, tablesToIgnore) {
+  static dump(app, path, verbose) {
     const {sort, saveDataToFile} = Backendless
 
     const removeRoleId = role => delete role.roleId
@@ -492,8 +496,6 @@ class Backendless {
       (table.columns || []).forEach(cleanColumn);
       (table.relations || []).forEach(cleanRelation);
     }
-
-    app.tables = app.tables.filter(table => !tablesToIgnore.find(prefix => table.name.startsWith(prefix)))
 
     app.tables.forEach(cleanTable)
     app.roles.forEach(removeRoleId)

@@ -1,24 +1,22 @@
 const _ = require('lodash');
 const Table = require('cli-table');
 
-const buildColumnsMap = (table, columnsToIgnore) => {
+const buildColumnsMap = table => {
     const result = {}
 
     table.columns.forEach(column => {
-        if (!columnsToIgnore.includes(column.name)) {
-            const options = [column.dataType]
+        const options = [column.dataType]
 
-            column.unique && (options.push('UQ'))
-            column.required && (options.push('NN'))
-            column.indexed && (options.push('IDX'))
-            column.customRegex && (options.push(`REGEXP:${column.customRegex}`))
-            column.defaultValue != null && (options.push(`DEFAULT:${column.defaultValue}`))
+        column.unique && (options.push('UQ'))
+        column.required && (options.push('NN'))
+        column.indexed && (options.push('IDX'))
+        column.customRegex && (options.push(`REGEXP:${column.customRegex}`))
+        column.defaultValue != null && (options.push(`DEFAULT:${column.defaultValue}`))
 
-            column.options = options
-            column.optionsString = options.join(', ')
+        column.options = options
+        column.optionsString = options.join(', ')
 
-            result[column.name] = column
-        }
+        result[column.name] = column
     })
 
     const addTableRelations = relations => {
@@ -106,14 +104,14 @@ const printDifferences = (apps, appTablesMap) => {
     return result;
 }
 
-const buildAppTablesMap = (apps, columnsToIgnore) => {
+const buildAppTablesMap = apps => {
     return apps.reduce((appTablesMap, app) => {
         const tablesMapByName = _.keyBy(app.tables, 'name')
 
         Object.keys(tablesMapByName).forEach(tableName => {
             appTablesMap[tableName] || (appTablesMap[tableName] = {})
 
-            const columnsMap = buildColumnsMap(tablesMapByName[tableName], columnsToIgnore)
+            const columnsMap = buildColumnsMap(tablesMapByName[tableName])
 
             Object.keys(columnsMap).forEach(columnName => {
                 appTablesMap[tableName][columnName] || (appTablesMap[tableName][columnName] = {})
@@ -125,8 +123,8 @@ const buildAppTablesMap = (apps, columnsToIgnore) => {
     }, {})
 }
 
-module.exports = (apps, columnsToIgnore) => {
-    const appTablesMap = buildAppTablesMap(apps, columnsToIgnore)
+module.exports = apps => {
+    const appTablesMap = buildAppTablesMap(apps)
 
     return printDifferences(apps, appTablesMap)
 }
