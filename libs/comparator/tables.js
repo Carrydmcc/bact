@@ -1,26 +1,22 @@
 const _ = require('lodash');
 const Table = require('cli-table');
 
-const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId', 'blUserLocale']
-
 const buildColumnsMap = table => {
     const result = {}
 
     table.columns.forEach(column => {
-        if (!SYSTEM_COLUMNS.includes(column.name)) {
-            const options = [column.dataType]
+        const options = [column.dataType]
 
-            column.unique && (options.push('UQ'))
-            column.required && (options.push('NN'))
-            column.indexed && (options.push('IDX'))
-            column.customRegex && (options.push(`REGEXP:${column.customRegex}`))
-            column.defaultValue != null && (options.push(`DEFAULT:${column.defaultValue}`))
+        column.unique && (options.push('UQ'))
+        column.required && (options.push('NN'))
+        column.indexed && (options.push('IDX'))
+        column.customRegex && (options.push(`REGEXP:${column.customRegex}`))
+        column.defaultValue != null && (options.push(`DEFAULT:${column.defaultValue}`))
 
-            column.options = options
-            column.optionsString = options.join(', ')
+        column.options = options
+        column.optionsString = options.join(', ')
 
-            result[column.name] = column
-        }
+        result[column.name] = column
     })
 
     const addTableRelations = relations => {
@@ -130,7 +126,7 @@ const buildAppTablesMap = apps => {
 module.exports = apps => {
     const appTablesMap = buildAppTablesMap(apps)
 
-    return printDifferences(apps, appTablesMap);
-};
+    return printDifferences(apps, appTablesMap)
+}
 
 module.exports.buildAppTablesMap = buildAppTablesMap

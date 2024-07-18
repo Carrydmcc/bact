@@ -48,8 +48,13 @@ const syncTables = (api, apps, opts) => {
         return tablesNames.reduce((p, tableName) => {
             return p
                 .then(() => !opts.silent && prompt(removeTableMsg(app.name, tableName)))
-                .then(res => res && removeTable(app.id, tableName))
-                .then(() => app.tables = app.tables.filter(table => table.name !== tableName))
+                .then(async res => {
+                  if (res || opts.silent) {
+                    await removeTable(app.id, tableName)
+
+                    app.tables = app.tables.filter(table => table.name !== tableName)
+                  }
+                })
         }, Promise.resolve())
     }
 
@@ -86,6 +91,8 @@ const syncColumn = async (api, app, tableName, columnName, sourceColumn, targetC
 
                     await bulkUpdate(api, app, tableName, where, { [columnName]: sourceColumn.defaultValue })
                 }
+
+                sourceColumn.columnId = targetColumn?.columnId
 
                 return api.updateColumn(app, tableName, sourceColumn)
             })
@@ -161,11 +168,9 @@ const syncColumns = (api, apps, opts) => {
         }, Promise.resolve())
 }
 
-
-module.exports = (api, apps, opts) =>
-    Promise.resolve()
-        .then(() => syncTables(api, apps, opts))
-        // update table data
-        .then(() => api.getAppDataTables())
-        .then(() => syncColumns(api, apps, opts))
-        .then(() => cleanup(api, apps))
+module.exports = async (api, apps, opts) => {
+  await syncTables(api, apps, opts)
+  await api.getAppDataTables()
+  await syncColumns(api, apps, opts)
+  await cleanup(api, apps)
+}

@@ -24,11 +24,11 @@ module.exports = options => {
 
   const {
     username, password, appControl, appsToCheck, dumpPath, reportingDir, beURL,
-    timeout, verboseOutput, silent, monitorMode, syncMode
+    timeout, verboseOutput, silent, monitorMode, syncMode, tablesToIgnore = [],
   } = options
 
   const backendless = new BackendlessConsole(
-    username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput)
+    username, password, beURL, appControl, appsToCheck, reportingDir, timeout, verboseOutput, tablesToIgnore)
 
   let apps
 
@@ -47,21 +47,21 @@ module.exports = options => {
       if (apps.length > 1) {
         return Promise.resolve()
           .then(() => checkList[SCHEMA] && compareTables(apps))
-          .then(hasDiferences => (checkList[ROLE_PERMS] && compareAppPermissions(apps)) || hasDiferences)
-          .then(hasDiferences => (checkList[TABLE_PERMS] && compareTablesPermissions(apps)) || hasDiferences)
-          .then(hasDiferences => (checkList[API] && compareEndpoints(apps)) || hasDiferences)
-          .then(hasDiferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDiferences)
-          .then(hasDiferences => (checkList[API_KEYS] && compareCustomApiKeys(apps)) || hasDiferences)
-          .then(hasDiferences => {
-            if (hasDiferences && syncMode) {
-              return sync(backendless, apps, {syncList: checkList, silent})
-                .then(() => hasDiferences)
+          .then(hasDifferences => (checkList[ROLE_PERMS] && compareAppPermissions(apps)) || hasDifferences)
+          .then(hasDifferences => (checkList[TABLE_PERMS] && compareTablesPermissions(apps)) || hasDifferences)
+          .then(hasDifferences => (checkList[API] && compareEndpoints(apps)) || hasDifferences)
+          .then(hasDifferences => (checkList[API_PERMS] && compareEndpointsPermissions(apps)) || hasDifferences)
+          .then(hasDifferences => (checkList[API_KEYS] && compareCustomApiKeys(apps)) || hasDifferences)
+          .then(hasDifferences => {
+            if (hasDifferences && syncMode) {
+              return sync(backendless, apps, { syncList: checkList, silent })
+                .then(() => hasDifferences)
             }
 
-            return hasDiferences
+            return hasDifferences
           })
-          .then(hasDiferences => {
-            if (hasDiferences && monitorMode) {
+          .then(hasDifferences => {
+            if (hasDifferences && monitorMode) {
               throw new Error('Differences detected')
             }
           })

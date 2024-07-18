@@ -15,8 +15,6 @@ writeFile = promisify(writeFile)
 readFile = promisify(readFile)
 stat = promisify(stat)
 
-const SYSTEM_COLUMNS = ['created', 'updated', 'ownerId', 'objectId']
-
 const filterLive = apps => apps.filter(app => !app.fromJSON)
 
 const tableColumnsUrl = (appId, table) => `${appId}/console/data/tables/${table}/columns`
@@ -38,7 +36,7 @@ const normalizeTablePermissions = roles => {
 }
 
 class Backendless {
-  constructor(username, password, beURL, controlAppName, appNamesToCheck, reportingDir, timeout, verboseOutput) {
+  constructor(username, password, beURL, controlAppName, appNamesToCheck, reportingDir, timeout, verboseOutput, tablesToIgnore) {
     /* Make a list of apps that are contextual to this check */
     const appsContext = _.concat(controlAppName, appNamesToCheck)
 
@@ -51,9 +49,9 @@ class Backendless {
       baseURL: beURL,
       timeout: timeout,
       headers: {
-        'content-type': 'application/json',
-        'application-type': 'REST'
-      }
+        'content-type'    : 'application/json',
+        'application-type': 'REST',
+      },
     })
 
     /* Log method and URL for all requests */
@@ -64,7 +62,6 @@ class Backendless {
 
       return config
     })
-
 
     /* Log success or failure for all requests on response */
     instance.interceptors.response.use(res => {
@@ -81,22 +78,23 @@ class Backendless {
       clientBaseURL: beURL,
       serverBaseURL,
       appsContext,
-      appList: [],
-      appsToCheck: [],
+      appList      : [],
+      appsToCheck  : [],
       appNamesToCheck,
-      controlApp: {},
+      controlApp   : {},
       controlAppName,
       instance,
       password,
       reportingDir,
       username,
-      verboseOutput
+      verboseOutput,
+      tablesToIgnore,
     })
   }
 
   /* Build app headers given appId and secretKey */
   _getAppHeaders({appId, secretKey}) {
-    return {headers: {'application-id': appId, 'secret-key': secretKey}}
+    return { headers: {'application-id': appId, 'secret-key': secretKey} }
   }
 
   /* Build appversion api path provided currentVersionId */
@@ -154,7 +152,7 @@ class Backendless {
         if (app.id) {
           return this.instance.get(`/${app.id}/console/appsettings`)
             .then(({data}) => {
-              const REST_KEY = data.apiKeys.find(({name}) => name === 'REST').apiKey
+              const REST_KEY = data.apiKeys.find(({ name }) => name === 'REST').apiKey
 
               return app.secretKey = REST_KEY
             })
@@ -167,7 +165,6 @@ class Backendless {
     console.log('Fetching schema..')
 
     const normalizeTable = (table, columnsById) => {
-      table.columns = table.columns.filter(column => !SYSTEM_COLUMNS.includes(column.name))
       table.columns.forEach(column => {
         if (column.dataType === 'BOOLEAN' && column.defaultValue) {
           column.defaultValue = column.defaultValue === 'true'
@@ -195,7 +192,11 @@ class Backendless {
           .then(({data}) => {
             const columnsById = _.keyBy(_.flatMap(data.tables, 'columns'), 'columnId')
 
-            return app.tables = _.sortBy(data.tables, 'name').map(t => normalizeTable(t, columnsById))
+            return app.tables = _.sortBy(
+              data.tables.filter(table => !this.tablesToIgnore.find(prefix => table.name.startsWith(prefix))),
+              'name'
+            )
+              .map(t => normalizeTable(t, columnsById))
           })
       })
     )
@@ -224,7 +225,7 @@ class Backendless {
       app.roles.map(role => {
         tasks.push(() =>
           this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles/permissions/${role.roleId}`)
-            .then(({data}) => role.permissions = data)
+            .then(({ data }) => role.permissions = data),
         )
       })
     })
