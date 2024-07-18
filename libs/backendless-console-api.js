@@ -15,6 +15,8 @@ writeFile = promisify(writeFile)
 readFile = promisify(readFile)
 stat = promisify(stat)
 
+const PARALLEL_LIMIT = 3
+
 const filterLive = apps => apps.filter(app => !app.fromJSON)
 
 const tableColumnsUrl = (appId, table) => `${appId}/console/data/tables/${table}/columns`
@@ -230,7 +232,7 @@ class Backendless {
       })
     })
 
-    return runInParallel(tasks, 10)
+    return runInParallel(tasks, PARALLEL_LIMIT)
   }
 
   getAppDataTableUserPermissions() {
@@ -262,7 +264,7 @@ class Backendless {
       })
     })
 
-    return runInParallel(tasks, 10)
+    return runInParallel(tasks, PARALLEL_LIMIT)
   }
 
   getAppServices() {
@@ -280,7 +282,7 @@ class Backendless {
               .then(({data: methods}) => service.methods = methods))
         })
       })
-    })).then(() => runInParallel(tasks, 10))
+    })).then(() => runInParallel(tasks, PARALLEL_LIMIT))
   }
 
   getAppServicesRolePermissions() {
@@ -314,7 +316,7 @@ class Backendless {
       })
     })
 
-    return runInParallel(tasks, 10)
+    return runInParallel(tasks, PARALLEL_LIMIT)
   }
 
   getAppCustomApiKeys() {
@@ -333,7 +335,7 @@ class Backendless {
       )
     })
 
-    return runInParallel(tasks, 10)
+    return runInParallel(tasks, PARALLEL_LIMIT)
   }
 
   /* Get main app meta data and return */
