@@ -225,9 +225,12 @@ class Backendless {
 
     filterLive(this.appList).forEach(app => {
       app.roles.map(role => {
-        tasks.push(() =>
-          this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles/permissions/${role.roleId}`)
-            .then(({ data }) => role.permissions = data),
+        tasks.push(() => {
+            console.log(role.rolename)
+
+            return this.instance.get(`${this._getConsoleApiUrl(app)}/security/roles/permissions/${role.roleId}`)
+              .then(({ data }) => role.permissions = data)
+          },
         )
       })
     })
@@ -502,7 +505,7 @@ class Backendless {
     app.tables.forEach(cleanTable)
     app.roles.forEach(removeRoleId)
 
-    app.services.forEach(service => {
+    ;(app.services || []).forEach(service => {
       delete service.id
       delete service.updateNotes
 
