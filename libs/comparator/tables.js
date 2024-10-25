@@ -13,6 +13,10 @@ const buildColumnsMap = table => {
         column.customRegex && (options.push(`REGEXP:${column.customRegex}`))
         column.defaultValue != null && (options.push(`DEFAULT:${column.defaultValue}`))
 
+        if (column.dataType === 'STRING' && column.dataSize != null) {
+          options.push(`SIZE:${column.dataSize}`)
+        }
+
         column.options = options
         column.optionsString = options.join(', ')
 
